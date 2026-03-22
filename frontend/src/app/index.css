@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@font-face {
+    font-family:'heading'; ;
+    src: url('./assets/fonts/JOBY-DISPLAY.woff2') format('truetype');
+}
+@font-face {
+    font-family:'text';
+    src: url('./assets/fonts/JOBY-TEXT.woff2') format('truetype');
+}
+
+
+html,body,#root{
+width:100%;
+height:100%;
+}
+

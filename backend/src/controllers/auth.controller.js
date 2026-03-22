@@ -5,86 +5,68 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { AppError } from '../utils/AppError.js';
 import dotenv from 'dotenv';
 import { sendVerificationEmail } from '../services/verifyEmail.js';
+import { getErrorHTML, getSuccessHTML } from '../html/verificationHtml.js';
+import redisClient from '../services/redis.service.js';
 dotenv.config();
-
-// Generate JWT Token
 
 
 // Register Controller
 export const register = asyncHandler(async (req, res) => {
     const { username, email, password } = req.body;
-
-    // Check if user already exists
     const existingUser = await User.findOne({
         $or: [{ email }, { username }]
     });
+    const userExists = await redisClient.get(username);
 
-    if (existingUser) {
+    if (existingUser || userExists) {
+        console.log(existingUser,userExists)
         throw new AppError('User with this email or username already exists', 400);
     }
-
-    // Hash password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
 
-    // Create user
-    const user = await User.create({
+    const token = jwt.sign({
         username,
         email,
         password: hashedPassword
-    });
-    const emailVerifyToken = jwt.sign({email},process.env.JWT_SECRET,{expiresIn:'7m'});
+    }, process.env.JWT_SECRET,{expiresIn: '15m'});
+    await redisClient.set(username, false, 'EX', 15 * 60); // Store token in Redis with 15 minutes expiration
+    
 
-    sendVerificationEmail(user,emailVerifyToken)
-
-    // Generate token
-    const token = jwt.sign({userId:user._id},process.env.JWT_SECRET,{expiresIn:process.env.JWT_EXPIRES_IN}
-    );
-
-    // Set cookie
-    res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
-
-    // Return user data (without password)
-    res.status(201).json({
+    sendVerificationEmail(username,email,token)
+    res.status(200).json({
         success: true,
-        message: 'User registered successfully',
-        user: {
-            id: user._id,
-            username: user.username,
-            email: user.email,
-            verified: user.verified
-        },
+        message: 'Verfication email sent to your inbox',    
+
         
     });
+
 });
 
 // Login Controller
 export const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-
-    // Find user and include password (since select: false)
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
         throw new AppError('Invalid email or password', 401);
     }
 
-    // Compare password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
         throw new AppError('Invalid email or password', 401);
     }
 
-    // Generate token
-    const token = generateToken(user._id);
+    if(!user.verified){
+        
+        throw new AppError('Please verify your email before logging in and try again ,Email sent for verification', 401);
+    }
 
-    // Set cookie
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
     res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -92,7 +74,6 @@ export const login = asyncHandler(async (req, res) => {
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    // Return user data (without password)
     res.status(200).json({
         success: true,
         message: 'Login successful',
@@ -135,13 +116,50 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
 });
 
 // Verify Email
-export const verifyEmail=asyncHandler(async(req,res)=>{
-    let token=req.query.token
-    let {email}=jwt.verify(token,process.env.JWT_SECRET)
-    
-    await User.findOneAndUpdate({email},{verified:true})
-    res.status(200).json({message:"Verified Successfully"})
-    
+export const verifyEmail = asyncHandler(async (req, res) => {
+    const { token } = req.query;
 
-})
+    if (!token) {
+        return res.status(400).send(getErrorHTML("Invalid verification link"));
+    }
 
+    let decoded;
+
+    try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+        return res.status(400).send(
+            getErrorHTML("Verification link expired or invalid")
+        );
+    }
+
+    const { email, username, password } = decoded;
+
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+        return res.status(400).send(
+            getErrorHTML("Account already exists or already verified")
+        );
+    }
+    await redisClient.set(username, true); // Mark user as verified in Redis
+
+    await User.create({
+        email,
+        username,
+        password,
+        verified: true
+    });
+
+    return res.send(getSuccessHTML());
+});
+
+// Check Verification Status
+export const checkVerificationStatus = asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    const status = await redisClient.get(username);
+    if (status === null) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    return res.status(200).json({ success: true, verified: status });
+});
