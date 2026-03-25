@@ -1,16 +1,33 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import useAuth from "../hooks/useAuth"
+import { Navigate } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
+  const {handleLogin,authState} = useAuth();
 
-  const [email, setEmail] = useState("");
+
+  const [cred, setCred] = useState("");
   const [password, setPassword] = useState("");
+  if(authState.user && !authState.loading){
+    return <Navigate to='/' replace></Navigate>
+  }
 
-  function handleSubmit(e){
+  async function handleSubmit(e){
     e.preventDefault();
     // Handle login logic here
-    console.log(e.target)
+    try{
+        let res=await handleLogin(cred, password);
+        if(res===true){
+          navigate("/")
+        }
+        
+    }
+    
+    catch(error){
+        console.error("Login failed:", authState.error);
+    }
   }
 
 
@@ -28,14 +45,14 @@ const Login = () => {
         </h2>
 
         <div className="space-y-4">
-            <form  onSubmit={(e)=>{handleSubmit}} className="space-y-4">
+            <form  onSubmit={(e)=>{handleSubmit(e)}} className="space-y-4">
 
           <input
-            type="email"
-            placeholder="Email"
+            
+            placeholder="Username or Email"
             required={true}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={cred}
+            onChange={(e) => setCred(e.target.value)}
             className="w-full p-3 rounded-xl bg-[#0a0a0a] border border-white/10 text-white focus:border-cyan-400 focus:shadow-[0_0_10px_rgba(0,255,255,0.3)] outline-none"
           />
 
@@ -53,6 +70,9 @@ const Login = () => {
           </button>
 
           </form>
+          <p className="text-red-500 text-center text-sm ">{authState.error}</p>
+          
+
 
           <p className="text-center text-gray-400 text-sm">
             Don’t have an account?{" "}

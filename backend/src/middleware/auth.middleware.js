@@ -17,7 +17,9 @@ export const authenticateToken = asyncHandler(async (req, res, next) => {
         const user = await User.findById(decoded.userId);
 
         if (!user) {
-            throw new AppError('User no longer exists', 401);
+            res.status(401).json({
+                message:"Not Authenticated"
+            })
         }
 
         // Attach user ID to request

@@ -48,13 +48,11 @@ export const validateRegister = [
 
 // Login validation rules
 export const validateLogin = [
-    body('email')
+    body('cred')
         .trim()
         .notEmpty()
-        .withMessage('Email is required')
-        .isEmail()
-        .withMessage('Please provide a valid email address')
-        .normalizeEmail(),
+        .withMessage('Email or Username is required')
+        .withMessage('Please provide a valid email address or username'),
     
     body('password')
         .notEmpty()

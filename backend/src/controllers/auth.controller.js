@@ -46,8 +46,8 @@ export const register = asyncHandler(async (req, res) => {
 
 // Login Controller
 export const login = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email }).select('+password');
+    const { cred, password } = req.body;
+    const user = await User.findOne({$or:[{ email:cred },{username:cred}]}).select('+password');
 
     if (!user) {
         throw new AppError('Invalid email or password', 401);
@@ -83,7 +83,7 @@ export const login = asyncHandler(async (req, res) => {
             email: user.email,
             verified: user.verified
         },
-        token
+        
     });
 });
 
@@ -157,9 +157,14 @@ export const verifyEmail = asyncHandler(async (req, res) => {
 // Check Verification Status
 export const checkVerificationStatus = asyncHandler(async (req, res) => {
     const { username } = req.params;
-    const status = await redisClient.get(username);
-    if (status === null) {
-        return res.status(404).json({ success: false, message: 'User not found' });
+    try{
+        const status = await redisClient.get(username);
+        return res.status(200).json({ success: true, verified: status });
     }
-    return res.status(200).json({ success: true, verified: status });
+    
+    catch(error){
+        throw new AppError('Failed to check verification status', 500);
+    }   
+    
+    
 });

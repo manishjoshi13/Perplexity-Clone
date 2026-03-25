@@ -1,17 +1,49 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import useAuth from "../hooks/useAuth"
+import { Navigate } from "react-router-dom";
 
 const Register = () => {
   const navigate = useNavigate();
-
+  
+  const {handleRegister,handleLogin,authState,handleCheckVerificationStatus} = useAuth();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [buttonVal,setButtonVal] = useState("Register");
+  if(authState.user && !authState.loading){
+      return <Navigate to='/' replace></Navigate>
+    }
 
-  function handleSubmit(e){
+
+  async function handleSubmit(e){
     e.preventDefault();
-    // Handle login logic here
-    
+    // Handle registration logic here
+    try{
+      if(buttonVal==="Register"){
+        let res=await handleRegister(username,email,password);
+        if(res){
+          setButtonVal("Verify");
+        }
+        
+      }
+      else if(buttonVal==="Verify"){
+        const isVerified = await handleCheckVerificationStatus(username);
+        console.log(isVerified);
+        if(isVerified=='true'){
+          await handleLogin(email,password);
+          navigate("/");
+          
+        }
+        else{
+          alert("Email not verified yet. Please check your email and verify your account.");
+        }
+      }
+    }
+    catch(error){
+        console.error("Registration failed:", error);
+    }
+
   }
 
   return (
@@ -42,7 +74,7 @@ const Register = () => {
             type="email"
             placeholder="Email"
             value={email}
-            required="true"
+            required={true}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full p-3 rounded-xl bg-[#0a0a0a] border border-white/10 text-white focus:border-cyan-400 focus:shadow-[0_0_10px_rgba(0,255,255,0.3)] outline-none"
           />
@@ -56,10 +88,13 @@ const Register = () => {
             className="w-full p-3 rounded-xl bg-[#0a0a0a] border border-white/10 text-white focus:border-cyan-400 focus:shadow-[0_0_10px_rgba(0,255,255,0.3)] outline-none"
           />
 
-          <button type="submit" className="w-full py-3 rounded-xl bg-cyan-500/20 text-cyan-300 hover:bg-cyan-400 hover:text-black transition">
-            Register
+          <button type="submit" className={`w-full py-3 rounded-xl  bg-cyan-500/20 text-cyan-300 hover:bg-cyan-400 hover:text-black transition ${authState.loading ? "cursor-not-allowed opacity-50" : ""}`}  disabled={authState.loading}>   
+            {buttonVal}
           </button> 
+          
           </form>
+          <p className="text-red-500 text-center text-sm ">{authState.error}</p>
+          <p className="text-green-500 text-center text-sm ">{buttonVal==="Verify" && authState.error==null? "Check Your Email For verification..." : ""}</p>
 
           <p className="text-center text-gray-400 text-sm">
             Already have an account?{" "}
