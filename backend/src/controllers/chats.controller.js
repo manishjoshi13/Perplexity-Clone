@@ -50,7 +50,7 @@ export const sendMessage=asyncHandler(async(req,res)=>{
 
 export const getAllChats = asyncHandler(async (req, res) => {
     const chats = await Chat.find({ user: req.userId }).sort({ createdAt: -1 });
-    res.status(200).json(chats);
+    res.status(200).json({chats});
 });
 
 export const getChatMessages = asyncHandler(async (req, res) => {
@@ -62,7 +62,7 @@ export const getChatMessages = asyncHandler(async (req, res) => {
     }
     
     const messages = await Message.find({ chat: chatid }).sort({ createdAt: 1 });
-    res.status(200).json(messages);
+    res.status(200).json({messages});
 });
 
 export const deleteChat = asyncHandler(async (req, res) => {

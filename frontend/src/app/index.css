@@ -13,5 +13,30 @@
 html,body,#root{
 width:100%;
 height:100%;
+
+}
+/* width */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
+/* track */
+::-webkit-scrollbar-track {
+  background: transparent; /* keeps it minimal */
+}
+
+/* thumb */
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 255, 0.5); /* cyan */
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+/* hover effect */
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 255, 0.8);
+}
+
+.chatarea{
+    scrollbar-gutter: stable;
+}

@@ -6,7 +6,7 @@ import { sendMessage, getAllChats, getChatMessages, deleteChat } from '../contro
 
 let router=express.Router()
 
-router.get('/message',authenticateToken,sendMessage)
+router.post('/message',authenticateToken,sendMessage)
 router.get('/', authenticateToken, getAllChats)
 router.get('/:chatid/message', authenticateToken, getChatMessages)
 router.delete('/delete/:chatid', authenticateToken, deleteChat)

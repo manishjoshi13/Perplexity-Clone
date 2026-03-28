@@ -6,10 +6,12 @@ import { errorHandler } from './src/middleware/errorHandler.js'
 import http from 'http'
 import { initializeSocketConnection } from './src/sockets/socket.js'
 import chatRouter from './src/routes/chats.routes.js'
+
 dotenv.config()
 
 let httpServer=http.createServer(app)
 initializeSocketConnection(httpServer)
+
 
 connectDB()
 httpServer.listen(3000,()=>{

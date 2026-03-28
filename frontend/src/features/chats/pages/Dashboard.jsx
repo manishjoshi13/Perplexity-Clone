@@ -8,22 +8,24 @@ import Sidebar from "../components/Sidebar";
 import ChatArea from "../components/ChatArea";
 
 
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  let {initializeSocketConnection}=useChats()
-  useEffect(()=>{
+  let { initializeSocketConnection, handleGetChats, chats } = useChats()
+  useEffect(() => {
     initializeSocketConnection()
-
-  },[])
+    handleGetChats()
+  }, [])
 
   return (
-    <Layout> 
+    <Layout>
       <Navbar />
+      
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar hidden on small screens */}
         <div className="hidden md:block">
-          <Sidebar />
+          <Sidebar chats={chats} />
         </div>
 
         {/* Chat Section */}
